@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SlangNet.Test/SlangNet.Test.csproj" />
+  <Project Path="SlangNet/SlangNet.csproj" />
+</Solution>

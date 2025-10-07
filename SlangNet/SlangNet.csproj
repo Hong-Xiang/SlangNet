@@ -1,0 +1,62 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableComHosting>true</EnableComHosting>
+    <EnableGeneratedComInterfaceComImportInterop>true</EnableGeneratedComInterfaceComImportInterop>
+
+    <!-- Platform Support -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <PlatformTarget>x64</PlatformTarget>
+
+    <!-- NuGet Package Settings -->
+    <PackageId>SlangNet</PackageId>
+    <Version>2025.17.2</Version>
+    <Authors>SlangNet Contributors</Authors>
+    <Company>SlangNet</Company>
+    <Product>SlangNet</Product>
+    <Description>A .NET binding for the Slang shader compiler with COM interop. Currently supports
+      Windows x64 only.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Hong-Xiang/SlangNet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Hong-Xiang/SlangNet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>slang;shader;compiler;hlsl;glsl;spirv;windows</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Include README in package -->
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+
+    <!-- Include all native files for win-x64 using wildcards -->
+    <!-- These are packaged in runtimes/win-x64/native/ for NuGet -->
+
+    <!-- All DLL files -->
+    <None Include="..\native-release\slang-2025.17.2-windows-x86_64\bin\*.dll">
+      <PackagePath>runtimes\win-x64\native\</PackagePath>
+      <Pack>true</Pack>
+      <Link>%(Filename)%(Extension)</Link>
+    </None>
+
+    <!-- All EXE files -->
+    <None Include="..\native-release\slang-2025.17.2-windows-x86_64\bin\*.exe">
+      <PackagePath>runtimes\win-x64\native\</PackagePath>
+      <Pack>true</Pack>
+      <Link>%(Filename)%(Extension)</Link>
+    </None>
+
+    <!-- All Slang files -->
+    <None Include="..\native-release\slang-2025.17.2-windows-x86_64\bin\*.slang">
+      <PackagePath>runtimes\win-x64\native\</PackagePath>
+      <Pack>true</Pack>
+      <Link>%(Filename)%(Extension)</Link>
+    </None>
+  </ItemGroup>
+
+</Project>
