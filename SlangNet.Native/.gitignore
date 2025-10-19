@@ -1,0 +1,7 @@
+# Downloaded and extracted Slang binaries
+downloads/
+extracted/
+
+# Build outputs
+bin/
+obj/

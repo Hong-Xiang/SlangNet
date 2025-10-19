@@ -20,8 +20,8 @@ public static class Slang
         IntPtr ptr;
         var hr = SlangNative.CreateGlobalSession2(in desc, out ptr);
         Marshal.ThrowExceptionForHR(hr);
-
         var session = (IGlobalSession)s_comWrappers.GetOrCreateObjectForComInstance(ptr, CreateObjectFlags.None);
+        Marshal.Release(ptr);
         return session;
     }
 

@@ -1,0 +1,167 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <SlangVersion>2025.19.1</SlangVersion>
+
+    <!-- NuGet Package Settings -->
+    <PackageId>DualDrill.SlangNet.Native</PackageId>
+    <Version>$(SlangVersion)-alpha.1</Version>
+    <Authors>Xiang Hong</Authors>
+    <Description>Native Slang shader compiler binaries for Windows, Linux, and macOS runtimes. All
+      files are sourced from the official Slang releases.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Hong-Xiang/SlangNet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Hong-Xiang/SlangNet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>slang;shader;compiler;native;hlsl;glsl;spirv;windows;linux;macos</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <!-- <GenerateReferenceAssembly>true</GenerateReferenceAssembly> -->
+    <TargetsForTfmSpecificContentInPackage>
+<!-- IncludeReferenceAssembly; -->
+      PrepareNativeFilesForPack;$(TargetsForTfmSpecificContentInPackage)
+    </TargetsForTfmSpecificContentInPackage>
+
+    <!-- Download Settings -->
+    <SlangReleaseBaseUrl>
+      https://github.com/shader-slang/slang/releases/download/v$(SlangVersion)/slang-$(SlangVersion)</SlangReleaseBaseUrl>
+    <SlangDownloadDir>$(MSBuildProjectDirectory)\downloads</SlangDownloadDir>
+    <SlangExtractRoot>$(MSBuildProjectDirectory)\extracted</SlangExtractRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="extracted\**\*.cs" />
+  </ItemGroup>
+
+
+  <!-- Runtime/Platform matrix -->
+  <ItemGroup>
+    <SlangRuntime Include="win-x64">
+      <Rid>win-x64</Rid>
+      <ArchiveSuffix>windows-x86_64.zip</ArchiveSuffix>
+    </SlangRuntime>
+    <SlangRuntime Include="win-arm64">
+      <Rid>win-arm64</Rid>
+      <ArchiveSuffix>windows-aarch64.zip</ArchiveSuffix>
+    </SlangRuntime>
+    <SlangRuntime Include="linux-x64">
+      <Rid>linux-x64</Rid>
+      <ArchiveSuffix>linux-x86_64.zip</ArchiveSuffix>
+    </SlangRuntime>
+    <SlangRuntime Include="linux-arm64">
+      <Rid>linux-arm64</Rid>
+      <ArchiveSuffix>linux-aarch64.zip</ArchiveSuffix>
+    </SlangRuntime>
+    <SlangRuntime Include="osx-x64">
+      <Rid>osx-x64</Rid>
+      <ArchiveSuffix>macos-x86_64.zip</ArchiveSuffix>
+    </SlangRuntime>
+    <SlangRuntime Include="osx-arm64">
+      <Rid>osx-arm64</Rid>
+      <ArchiveSuffix>macos-aarch64.zip</ArchiveSuffix>
+    </SlangRuntime>
+  </ItemGroup>
+
+  <ItemGroup>
+    <SlangRuntime Update="@(SlangRuntime)">
+      <ArchiveFile>slang-$(SlangVersion)-%(ArchiveSuffix)</ArchiveFile>
+      <ArchiveUrl>$(SlangReleaseBaseUrl)-%(ArchiveSuffix)</ArchiveUrl>
+      <ArchivePath>$(SlangDownloadDir)\%(ArchiveFile)</ArchivePath>
+      <ExtractDir>$(SlangExtractRoot)\%(Identity)</ExtractDir>
+      <BinDir>%(ExtractDir)\bin</BinDir>
+    </SlangRuntime>
+  </ItemGroup>
+
+  <!-- Download Slang native binaries from GitHub -->
+  <Target Name="DownloadSlangNatives" BeforeTargets="Build;Pack">
+    <MakeDir Directories="$(SlangDownloadDir)" />
+
+    <ItemGroup>
+      <_RuntimesToDownload Include="@(SlangRuntime)" Condition="!Exists('%(ArchivePath)')" />
+    </ItemGroup>
+
+    <Message Text="Downloading Slang $(SlangVersion) native binaries..." Importance="high"
+      Condition="@(_RuntimesToDownload) != ''" />
+
+    <DownloadFile
+      SourceUrl="%(_RuntimesToDownload.ArchiveUrl)"
+      DestinationFolder="$(SlangDownloadDir)"
+      DestinationFileName="%(_RuntimesToDownload.ArchiveFile)"
+      Condition="@(_RuntimesToDownload) != ''" />
+  </Target>
+
+  <!-- Extract Slang binaries -->
+  <Target Name="ExtractSlangNatives" BeforeTargets="Build;Pack"
+    DependsOnTargets="DownloadSlangNatives">
+    <ItemGroup>
+      <_RuntimesToExtract Include="@(SlangRuntime)" Condition="!Exists('%(BinDir)')" />
+    </ItemGroup>
+
+    <Message Text="Extracting Slang binaries..." Importance="high"
+      Condition="@(_RuntimesToExtract) != ''" />
+
+    <MakeDir Directories="@(_RuntimesToExtract->'%(ExtractDir)')"
+      Condition="@(_RuntimesToExtract) != ''" />
+
+    <Unzip
+      SourceFiles="%(_RuntimesToExtract.ArchivePath)"
+      DestinationFolder="%(_RuntimesToExtract.ExtractDir)"
+      OverwriteReadOnlyFiles="true"
+      Condition="@(_RuntimesToExtract) != ''" />
+  </Target>
+
+  <!-- Ensure files are ready before pack -->
+  <Target Name="PrepareNativeFilesForPack" BeforeTargets="CollectPackageFiles"
+    DependsOnTargets="DownloadSlangNatives;ExtractSlangNatives">
+    <Message Text="Preparing native files for packaging..." Importance="high" />
+    <Message Text="Runtime bins: @(SlangRuntime->'%(Identity) => %(BinDir)', ', ')"
+      Importance="high" />
+
+    <ItemGroup>
+      <NativeFile Include="%(SlangRuntime.BinDir)\*.*">
+        <Rid>%(SlangRuntime.Rid)</Rid>
+      </NativeFile>
+    </ItemGroup>
+
+    <Message Text="Native files: @(NativeFile)" Importance="high" Condition="@(NativeFile) != ''" />
+    <Message Text="Packaging @(NativeFile->'%(Rid) %(Filename)%(Extension)', ', ')"
+      Importance="high" Condition="@(NativeFile) != ''" />
+
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(NativeFile)" Condition="@(NativeFile) != ''">
+        <TargetPath>runtimes\%(NativeFile.Rid)\native\%(Filename)%(Extension)</TargetPath>
+        <PackagePath>runtimes\%(NativeFile.Rid)\native\%(Filename)%(Extension)</PackagePath>
+        <Visible>false</Visible>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
+
+  <!-- Include README for the package -->
+  <ItemGroup>
+    <None Include="README.md">
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <!-- Include reference assembly in ref/ -->
+  <!-- <Target Name="IncludeReferenceAssembly" DependsOnTargets="Build">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(IntermediateOutputPath)ref\$(TargetFramework)\$(AssemblyName).dll"
+        Condition="Exists('$(IntermediateOutputPath)ref\$(TargetFramework)\$(AssemblyName).dll')">
+        <PackagePath>ref\$(TargetFramework)\$(AssemblyName).dll</PackagePath>
+        <TargetPath>ref\$(TargetFramework)\$(AssemblyName).dll</TargetPath>
+        <Visible>false</Visible>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target> -->
+
+  <!-- Clean downloaded and extracted files -->
+  <Target Name="CleanSlangNatives" AfterTargets="Clean">
+    <Message Text="Cleaning Slang native downloads and extractions..." Importance="high" />
+    <RemoveDir Directories="$(SlangDownloadDir);$(SlangExtractRoot)" />
+  </Target>
+
+</Project>
